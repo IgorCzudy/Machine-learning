@@ -7,14 +7,13 @@ class Node(object):
 	def __init__(self):
 		self.children = defaultdict(lambda: Node()) # Typ: {wartość cechy: Node}, wierzchołeki znajdujące się w odnogach
 		self.node_value = None # Przechowuje wartość o ile wierzchołek jest liściem
+		self.chosen_atr = None
         
 	def entropy_count(self, y: pd.Series):
 		y_value_counts = y.value_counts()
 		return -(y_value_counts/y_value_counts.sum() * np.log2(y_value_counts/y_value_counts.sum())).sum()
 
 	def conditional_entropy_count(self, x:pd.Series, y:pd.Series):
-
-		xy = pd.concat([x, y], axis=1)
 		
 		summ = 0
 		for features_value in x.unique():
@@ -38,6 +37,7 @@ class Node(object):
 		# if uzyskano poprawę funkcji celu (bądź inny, zaproponowany przez Ciebie warunek):
 		if s[best_feature_to_split] > 0:
 			for value in data[best_feature_to_split].unique():
+				self.chosen_atr = best_feature_to_split
 				xy = pd.concat([data, Y], axis=1)
 				self.children[value].perform_split(data.loc[data[best_feature_to_split] == value], xy.loc[xy[best_feature_to_split] == value]["Survived"])
 		else:
@@ -54,13 +54,15 @@ class Node(object):
 		#else:
 			#obecny Node jest liściem, zapisz jego odpowiedź
 
-	def predict(self, example):
-		pass
+	def predict(self, example: pd.Series):
 		"""
 		if not Node jest liściem:
 			return self.children[wartość cechy po której robimy podział].predict(example)
 		return self.node_value = zwróć wartość (Node jest liściem)
 		"""
+		if self.node_value is None:
+			return self.children[example[self.chosen_atr]].predict(example)
+		return self.node_value
 		
 		
 def age_distretization(df: pd.DataFrame):
@@ -96,6 +98,7 @@ if __name__ == "__main__":
 	tree_root = Node()
 	tree = tree_root.perform_split(df.drop(columns=["Survived"]), df["Survived"])
 	print('Training complete!')
+	print(tree_root.predict(df.drop(columns=["Survived"]).loc[1,:]))
 
 	### Implementacja zmierzenia trafności klasyfikacji (!) na danych testowych i uczących np.
 	# for element in test_data:
